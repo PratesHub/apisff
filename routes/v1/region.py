@@ -33,7 +33,7 @@ def get_region_and_id(account_id):
 def region():
     account_id = request.args.get('uid')
     if not account_id:
-        return jsonify({'error': Code 1'}), 400
+        return jsonify({'error': 'Code 1'}), 400
 
     region, nickname = get_region_and_id(account_id)
     if region and nickname:
