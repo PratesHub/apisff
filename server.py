@@ -10,6 +10,7 @@ app = Flask(__name__)
 routes = []
 
 def load_routes(directory):
+    loaded_routes = []
     for root, dirs, files in os.walk(directory):
         for file in files:
             if file.endswith('.py'):
@@ -26,14 +27,13 @@ def load_routes(directory):
                 
                 if hasattr(module, 'route_function'):
                     app.add_url_rule(endpoint, f"{module_name}_endpoint", module.route_function)
-                    routes.append(endpoint)
+                    loaded_routes.append(endpoint)
                     print(f"Loaded route: {endpoint}")
+    return loaded_routes
 
-def print_routes():
+def print_routes(loaded_routes):
     print("\nAvailable routes:")
-    for route in routes:
-        status = colored('🟢', 'green')
-        print(f"{status} {route}")
+    all_routes = set()
     
     for root, dirs, files in os.walk('routes'):
         for file in files:
@@ -41,9 +41,16 @@ def print_routes():
                 module_path = os.path.join(root, file)
                 relative_path = os.path.relpath(module_path, 'routes')
                 potential_route = f"/{os.path.splitext(relative_path)[0]}".replace('\\', '/')
-                if potential_route not in routes:
-                    status = colored('🔴', 'red')
-                    print(f"{status} {potential_route} (No route_function found)")
+                all_routes.add(potential_route)
+    
+    for route in all_routes:
+        if route in loaded_routes:
+            status = colored('🟢', 'green')
+            print(f"{status} {route}")
+        else:
+            status = colored('🔴', 'red')
+            print(f"{status} {route} (No route_function found)")
+    
 
 @app.route('/')
 def home():
@@ -65,11 +72,12 @@ def keep_alive():
 if __name__ == '__main__':
     from waitress import serve
     
-    load_routes('routes')
-    print_routes()
+    loaded_routes = load_routes('routes')
+    print_routes(loaded_routes)
     
     keep_alive_thread = threading.Thread(target=keep_alive, daemon=True)
     keep_alive_thread.start()
     
     print("\nServer is running on http://localhost:8080")
     serve(app, host='0.0.0.0', port=8080)
+
